@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/ColorItem.dart';
 
@@ -40,11 +41,11 @@ class HomeScreen extends StatelessWidget  {
           children: [
             _buildFilterChips(),
             const SizedBox(height: 16),
-            _buildSectionTitle('Projectos'),
+            _buildSectionTitle(context,'Projectos'),
             const SizedBox(height: 8),
             _buildProjetosList(),
             const SizedBox(height: 16),
-            _buildSectionTitle('Actividades'),
+            _buildSectionTitle(context,'Actividades'),
             const SizedBox(height: 8),
             _buildActividadesList(),
           ],
@@ -90,13 +91,14 @@ class HomeScreen extends StatelessWidget  {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context,String title) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
+
         IconButton(
-          onPressed: () {},
+          onPressed: () => context.push('/new_project'),
           icon: const Icon(Icons.add),color: Color(0xFF706E6F),
         ),
       ],
@@ -110,13 +112,13 @@ class HomeScreen extends StatelessWidget  {
         scrollDirection: Axis.horizontal,
         itemCount: 2, // exemplo
         itemBuilder: (context, index) {
-          return _buildProjetoCard();
+          return _buildProjetoCard(context);
         },
       ),
     );
   }
 
-  Widget _buildProjetoCard() {
+  Widget _buildProjetoCard(BuildContext context) {
     return Container(
       width: 200,
       margin: const EdgeInsets.only(right: 12),
@@ -206,7 +208,7 @@ class HomeScreen extends StatelessWidget  {
               // <-- Botão adaptado aqui!
               Container(
                 decoration: BoxDecoration(
-                  color: selectedItem?.color ?? Colors.black, // cor do botão
+                  color: selectedItem?.color ?? Colors.white, // cor do botão
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 8),

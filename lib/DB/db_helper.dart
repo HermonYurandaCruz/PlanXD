@@ -27,7 +27,11 @@ class DBHelper {
           CREATE TABLE projetos(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT,
-            dataEntrega TEXT,
+            dateEnd TEXT,
+            dateStart TEXT,
+            objective TEXT,
+            typeProject TEXT,
+            descriptionProject TEXT,
             numeroAtividades INTEGER
           )
         ''');
@@ -38,7 +42,7 @@ class DBHelper {
             dataEntrega TEXT,
             prioridade TEXT,
             status TEXT,
-            projetoNome TEXT
+            idProjeto TEXT
           )
         ''');
       },

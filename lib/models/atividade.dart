@@ -4,7 +4,7 @@ class Atividade {
   final String dataEntrega;
   final String prioridade;
   final String status;
-  final String projetoNome;
+  final String idProjeto;
 
   Atividade({
     this.id,
@@ -12,7 +12,7 @@ class Atividade {
     required this.dataEntrega,
     required this.prioridade,
     required this.status,
-    required this.projetoNome,
+    required this.idProjeto,
   });
 
   // guardar no SQLite
@@ -23,7 +23,7 @@ class Atividade {
       'dataEntrega': dataEntrega,
       'prioridade': prioridade,
       'status': status,
-      'projetoNome': projetoNome,
+      'idProjeto': idProjeto,
     };
   }
 
@@ -35,7 +35,7 @@ class Atividade {
       dataEntrega: map['dataEntrega'],
       prioridade: map['prioridade'],
       status: map['status'],
-      projetoNome: map['projetoNome'],
+      idProjeto: map['idProjeto'],
     );
   }
 }
