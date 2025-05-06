@@ -1,12 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:plan_xd/DB/db_helper.dart';
+import 'package:plan_xd/models/projeto.dart';
 
 import '../../models/ColorItem.dart';
 
-class HomeScreen extends StatelessWidget  {
+class HomeScreen extends StatefulWidget   {
 
   const HomeScreen({super.key});
+
+  @override
+  _HomeScreen createState() => _HomeScreen();
+}
+
+class _HomeScreen extends State<HomeScreen> {
+  List<Projeto> _projetoList = [];
+  DBHelper _helperProjecto = DBHelper();
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _helperProjecto.getProjetos().then((list) {
+      setState(() {
+        _projetoList = list;
+        _loading = false;
+      });
+      _projetoList.forEach((projeto) {
+        print('Projeto: ${projeto.nome}, Data de fim: ${projeto.dateEnd}');
+      });
+    });
+  }
 
 
 
@@ -98,7 +124,7 @@ class HomeScreen extends StatelessWidget  {
         Text(title, style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
 
         IconButton(
-          onPressed: () => context.push('/new_project'),
+          onPressed: () => context.go('/new_project'),
           icon: const Icon(Icons.add),color: Color(0xFF706E6F),
         ),
       ],
@@ -106,46 +132,77 @@ class HomeScreen extends StatelessWidget  {
   }
 
   Widget _buildProjetosList() {
-    return SizedBox(
-      height: 150,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 2, // exemplo
-        itemBuilder: (context, index) {
-          return _buildProjetoCard(context);
-        },
-      ),
-    );
+    if (_projetoList.isEmpty) {
+      return Center(
+        child: _loading ? CircularProgressIndicator() : Text("Sem Projectos!"),
+      );
+    } else {
+      return SizedBox(
+        height: 200,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal, // <- IMPORTANTE!
+          itemCount: _projetoList.length,
+          itemBuilder: (context, index) => _buildProjetoCard(context, index),
+        ),
+      );
+    }
   }
 
-  Widget _buildProjetoCard(BuildContext context) {
-    return Container(
-      width: 200,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('Desenvolvimento de sistema Web para LtM',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF706E6F))),
-          SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.calendar_today,color: Color(0xFF706E6F), size: 16),
-              SizedBox(width: 4),
-              Text('12/12/2025', style: TextStyle(fontWeight: FontWeight.bold,color: Color(0xFF706E6F)),),
 
-            ],
-          ),
-          Spacer(),
-          Text( '12 Actividades', style: TextStyle(
-              color: Color(0xFF706E6F)
-          )),
-        ],
+
+  Widget _buildProjetoCard(BuildContext context, int index) {
+    final project = _projetoList[index];
+    return InkWell(
+      onTap: () {
+        context.go('/detail_project');
+        // Aqui defines o que acontece ao clicar no projeto
+        print('Projeto clicado: ${project.nome}');
+        // Exemplo: navegar para outra tela
+        // context.push('/detalhes_projeto', extra: project);
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 200,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Color(0xFFEBEBEB),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              project.nome,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF706E6F),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, color: Color(0xFF706E6F), size: 16),
+                SizedBox(width: 4),
+                Text(
+                  DateFormat('dd/MM/yyyy').format(project.dateEnd),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF706E6F),
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              '${project.numeroAtividades} Actividades',
+              style: TextStyle(
+                color: Color(0xFF706E6F),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -249,5 +306,4 @@ class HomeScreen extends StatelessWidget  {
       ),
     );
   }
-
 }

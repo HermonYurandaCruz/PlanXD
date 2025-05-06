@@ -61,9 +61,7 @@ class _AdicionarProjectoPageState extends State<AdicionarProjectoPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Projeto salvo com sucesso!')),
       );
-      context.pop();
-      // Salvar projeto...
-      print('Projeto salvo: ${projeto.toMap()}');
+      context.go('/');
     }else{
       print('Dados em falta');
     }
@@ -73,11 +71,11 @@ class _AdicionarProjectoPageState extends State<AdicionarProjectoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Adicionar Projecto',style: const TextStyle(fontSize: 20, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
+        title: const Text('Adicionar Projecto',style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            context.pop();
+            context.go('/');
           },
         ),
         backgroundColor: Colors.white,
