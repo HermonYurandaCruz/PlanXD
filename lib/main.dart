@@ -25,8 +25,11 @@ class MyApp extends StatelessWidget {
       builder:(context,state)=> AdicionarProjectoPage()
       ),
       GoRoute(
-        path: '/detail_project',
-        builder: (context, state) => DetalhesProjecto(),
+        path: '/detail_project/:id',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return DetalhesProjecto(id: id);
+        }
       ),
     ],
   );

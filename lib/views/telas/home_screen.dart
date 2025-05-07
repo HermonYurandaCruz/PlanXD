@@ -154,7 +154,7 @@ class _HomeScreen extends State<HomeScreen> {
     final project = _projetoList[index];
     return InkWell(
       onTap: () {
-        context.go('/detail_project');
+        context.go('/detail_project/${project.id}');
         // Aqui defines o que acontece ao clicar no projeto
         print('Projeto clicado: ${project.nome}');
         // Exemplo: navegar para outra tela

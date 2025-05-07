@@ -61,6 +61,22 @@ class DBHelper {
     return result.map((e) => Projeto.fromMap(e)).toList();
   }
 
+  Future<Projeto?> getProjetoById(int id) async {
+    var database = await db;
+    var result = await database.query(
+      'projetos',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (result.isNotEmpty) {
+      return Projeto.fromMap(result.first);
+    } else {
+      return null;
+    }
+  }
+
+
   // Métodos para Atividade
   Future<int> insertAtividade(Atividade atividade) async {
     var database = await db;

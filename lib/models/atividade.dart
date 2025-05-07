@@ -1,10 +1,10 @@
 class Atividade {
   final int? id;
   final String titulo;
-  final String dataEntrega;
+  final DateTime dataEntrega;
   final String prioridade;
   final String status;
-  final String idProjeto;
+  final int idProjeto;
 
   Atividade({
     this.id,
