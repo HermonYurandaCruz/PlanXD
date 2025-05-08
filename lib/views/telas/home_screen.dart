@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:plan_xd/DB/db_helper.dart';
+import 'package:plan_xd/models/atividade.dart';
 import 'package:plan_xd/models/projeto.dart';
 
 import '../../models/ColorItem.dart';
@@ -17,6 +18,8 @@ class HomeScreen extends StatefulWidget   {
 
 class _HomeScreen extends State<HomeScreen> {
   List<Projeto> _projetoList = [];
+  List<Atividade> _actividades = [];
+
   DBHelper _helperProjecto = DBHelper();
   bool _loading = true;
 
@@ -30,6 +33,16 @@ class _HomeScreen extends State<HomeScreen> {
       });
       _projetoList.forEach((projeto) {
         print('Projeto: ${projeto.nome}, Data de fim: ${projeto.dateEnd}');
+      });
+    });
+
+    _helperProjecto.getAtividades().then((list) {
+      setState(() {
+        _actividades = list;
+        _loading = false;
+      });
+      _actividades.forEach((actividade) {
+        print('Actividade: ${actividade.titulo}, Data de fim: ${actividade.dataEntrega}');
       });
     });
   }
@@ -140,7 +153,7 @@ class _HomeScreen extends State<HomeScreen> {
       return SizedBox(
         height: 200,
         child: ListView.builder(
-          scrollDirection: Axis.horizontal, // <- IMPORTANTE!
+          scrollDirection: Axis.horizontal,
           itemCount: _projetoList.length,
           itemBuilder: (context, index) => _buildProjetoCard(context, index),
         ),
@@ -148,6 +161,22 @@ class _HomeScreen extends State<HomeScreen> {
     }
   }
 
+  Widget _buildActividadesList() {
+    if (_actividades.isEmpty) {
+      return Center(
+        child: _loading ? CircularProgressIndicator() : Text("Sem Actividades!"),
+      );
+    } else {
+
+      return ListView.builder(
+          scrollDirection: Axis.vertical,
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          itemCount: _actividades.length,
+          itemBuilder: (context, index) => _buildAtividadeCard(context, index),
+      );
+    }
+  }
 
 
   Widget _buildProjetoCard(BuildContext context, int index) {
@@ -207,22 +236,11 @@ class _HomeScreen extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActividadesList() {
-    return Column(
-      children: List.generate(4, (index) => _buildAtividadeCard()),
-    );
-  }
 
-  Widget _buildAtividadeCard() {
-    ColorItem? selectedItem;
 
-    final List<ColorItem> items = [
-      ColorItem("A Fazer", Color(0xFFFFFFFF)),
-      ColorItem("Em Atraso",  Color(0xFFD2A307)),
-      ColorItem("Cancelada",  Color(0xFFE82B2B)),
-      ColorItem("Em Progresso",  Color(0xFF0777D2)),
-
-    ];
+  Widget _buildAtividadeCard(BuildContext context,int index) {
+    final actividade = _actividades[index];
+    bool? isSelected = false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -234,19 +252,19 @@ class _HomeScreen extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Levantamento das funcionalidades do sistema',
+         Text(
+            actividade.titulo,
             style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF706E6F)),
           ),
           const SizedBox(height: 8),
           Row(
-            children: const [
+            children:  [
               Icon(Icons.calendar_today, size: 16),
               SizedBox(width: 4),
-              Text('12/12/2025', style: TextStyle(color: Color(0xFFE82B2B), fontWeight: FontWeight.bold)),
+              Text( DateFormat('dd/MM/yyyy').format(actividade.dataEntrega), style: TextStyle(color: Color(0xFFE82B2B), fontWeight: FontWeight.bold)),
               SizedBox(width: 16),
               Text('Prioridade: '),
-              Text('Alta', style: TextStyle(color: Color(0xFFE82B2B), fontWeight: FontWeight.bold)),
+              Text(actividade.prioridade, style: TextStyle(color: Color(0xFFE82B2B), fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 16),
@@ -254,52 +272,27 @@ class _HomeScreen extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                'Projecto A',
+
+              Text(
+                'Projecto:${actividade.idProjeto}',
                 style: TextStyle(
                   color: Color(0xFF706E6F),
                   fontWeight: FontWeight.bold,
                 ),
               ),
 
-              // <-- Botão adaptado aqui!
-              Container(
-                decoration: BoxDecoration(
-                  color: selectedItem?.color ?? Colors.white, // cor do botão
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: DropdownButton<ColorItem>(
-                  value: selectedItem,
-                  underline: Container(),
-                  icon: SizedBox.shrink(),
-                  dropdownColor: Colors.white,
-                  hint: const Text('Selecionar estado'),
-                  items: items.map((ColorItem item) {
-                    return DropdownMenuItem<ColorItem>(
-                      value: item,
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              color: item.color,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(item.name),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (ColorItem? newValue) {
-                      selectedItem = newValue;
-                  },
-                ),
-              ),
+              Checkbox(
+                activeColor: Color(0xFFE82B2B),
+                value: isSelected,
+                checkColor: Colors.white,
+                autofocus: true,
+                onChanged: (value) {
+                  setState(() {
+                    isSelected = true;
+                  });
+                },
 
+              ),
             ],
           ),
         ],

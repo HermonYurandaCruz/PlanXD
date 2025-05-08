@@ -46,19 +46,36 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
   }
 
   Future<void> _salvarFormulario() async {
-    if (_formKey.currentState!.validate() && dataConclusao != null && nomeActividade != null && statusSelecionado != null) {
+    print('Dados activdade:');
+    print(nomeActividade.text);
+    print(dataConclusao);
+    print(statusSelecionado);
+    print(widget.id);
+
+    if (dataConclusao != null && nomeActividade.text.isNotEmpty && statusSelecionado != null && descricaoController != null && widget.id != null) {
+      print('endrou no metodo cadastreAR ACTIVIDaDE bD:');
+
       final atividade = Atividade(
         titulo: nomeActividade.text,
         dataEntrega: dataConclusao!,
         prioridade: statusSelecionado!,
         status: 'Sem estado',
+        description:descricaoController.text,
         idProjeto: widget.id,
       );
+      print('ADICIONOU TUDO AO OBJECTO: $atividade');
+
       await DBHelper().insertAtividade(atividade);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Actividade salva com sucesso!')),
       );
+      nomeActividade.clear();
+      descricaoController.clear();
+      dataConclusao = null;
+      statusSelecionado = null;
+
+      setState(() {}); // Atualiza o UI
     }else{
       print('Dados em falta');
     }
@@ -102,7 +119,7 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
             children: [
               const Text('Projecto',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
               const SizedBox(height: 4),
-              Text('${_projeto!.nome}',style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
+              Text(_projeto?.nome ?? 'Sem título',style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

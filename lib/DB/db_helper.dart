@@ -36,12 +36,13 @@ class DBHelper {
           )
         ''');
         await db.execute('''
-          CREATE TABLE atividades(
+          CREATE TABLE actividades(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             titulo TEXT,
             dataEntrega TEXT,
             prioridade TEXT,
             status TEXT,
+            description TEXT,
             idProjeto TEXT
           )
         ''');
@@ -80,12 +81,12 @@ class DBHelper {
   // Métodos para Atividade
   Future<int> insertAtividade(Atividade atividade) async {
     var database = await db;
-    return await database.insert('atividades', atividade.toMap());
+    return await database.insert('actividades', atividade.toMap());
   }
 
   Future<List<Atividade>> getAtividades() async {
     var database = await db;
-    var result = await database.query('atividades');
+    var result = await database.query('actividades');
     return result.map((e) => Atividade.fromMap(e)).toList();
   }
 }
