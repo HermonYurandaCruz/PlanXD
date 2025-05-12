@@ -1,9 +1,11 @@
+import 'dart:ffi';
+
 class Atividade {
   final int? id;
   final String titulo;
   final DateTime dataEntrega;
   final String prioridade;
-  final String status;
+  int status;
   final String description;
   final int idProjeto;
 

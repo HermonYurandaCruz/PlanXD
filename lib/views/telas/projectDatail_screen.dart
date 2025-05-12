@@ -21,6 +21,9 @@ const DetalhesProjecto({Key? key, required this.id}) : super(key: key);
   }
 class _DetalhesProjectoState extends State<DetalhesProjecto> {
   final _formKey = GlobalKey<FormState>();
+  List<Atividade> _actividades = [];
+  bool _loading = true;
+  DBHelper _helperProjecto = DBHelper();
 
   Projeto? _projeto;
   final nomeActividade= TextEditingController();
@@ -59,7 +62,7 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
         titulo: nomeActividade.text,
         dataEntrega: dataConclusao!,
         prioridade: statusSelecionado!,
-        status: 'Sem estado',
+        status:0,
         description:descricaoController.text,
         idProjeto: widget.id,
       );
@@ -74,8 +77,8 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
       descricaoController.clear();
       dataConclusao = null;
       statusSelecionado = null;
-
       setState(() {}); // Atualiza o UI
+      initState();
     }else{
       print('Dados em falta');
     }
@@ -86,6 +89,16 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
   void initState() {
     super.initState();
     _buscarProjeto();
+
+    _helperProjecto.getAtividadesByIdProjeto(widget.id).then((list) {
+      setState(() {
+        _actividades = list;
+        _loading = false;
+      });
+      _actividades.forEach((actividade) {
+        print('Actividade: ${actividade.titulo}, Data de fim: ${actividade.dataEntrega}, estado: ${actividade.status}');
+      });
+    });
   }
 
 
@@ -113,89 +126,111 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Projecto',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
-              const SizedBox(height: 4),
-              Text(_projeto?.nome ?? 'Sem título',style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Data de Inicio',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today, color: Color(0xFF706E6F), size: 16),
-                          SizedBox(width: 4),
-                          Text( '${DateFormat('dd/MM/yyyy').format(_projeto!.dateStart)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF706E6F),
+        child: ListView(
+          children: [
+             Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Projecto',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
+                const SizedBox(height: 4),
+                Text(_projeto?.nome ?? 'Sem título',style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Data de Inicio',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_today, color: Color(0xFF706E6F), size: 16),
+                            SizedBox(width: 4),
+                            Text( '${DateFormat('dd/MM/yyyy').format(_projeto!.dateStart)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF706E6F),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
 
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Data de Conclusão',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today, color: Color(0xFF706E6F), size: 16),
-                          SizedBox(width: 4),
-                          Text( '${DateFormat('dd/MM/yyyy').format(_projeto!.dateEnd)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF706E6F),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Data de Conclusão',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_today, color: Color(0xFF706E6F), size: 16),
+                            SizedBox(width: 4),
+                            Text( '${DateFormat('dd/MM/yyyy').format(_projeto!.dateEnd)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF706E6F),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
 
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Actividades:',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
-                       Text('${_projeto!.numeroAtividades} Actividades',style: const TextStyle(fontSize: 14, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
-                    ],
-                  )
-                ],
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Actividades:',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
+                        Text('${_projeto!.numeroAtividades} Actividades',style: const TextStyle(fontSize: 14, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
+                      ],
+                    )
+                  ],
 
-              ),
-                  const SizedBox(height: 12),
-                  const Text('Descrição do projecto:',style: const TextStyle(fontSize: 16, color: Color(0xFF888888) ,fontWeight: FontWeight.bold)),
-                   Text('${_projeto!.descriptionProject}',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
+                ),
+                const SizedBox(height: 12),
+                const Text('Descrição do projecto:',style: const TextStyle(fontSize: 16, color: Color(0xFF888888) ,fontWeight: FontWeight.bold)),
+                Text('${_projeto!.descriptionProject}',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
 
-                  const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Actividades', style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Actividades', style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
 
-                  IconButton(
-                    onPressed:() => _mostrarBottomSheet(context),
-                    icon: const Icon(Icons.add),color: Color(0xFF706E6F),
-                  ),
-                ],
-              ),
+                    IconButton(
+                      onPressed:() => _mostrarBottomSheet(context),
+                      icon: const Icon(Icons.add),color: Color(0xFF706E6F),
+                    ),
+                  ],
+                ),
+                _buildActividadesList()
 
-            ],
-          ),
+              ],
+            ),
+
+          ],
         ),
       ),
     );
+  }
+
+
+  Widget _buildActividadesList() {
+    if (_actividades.isEmpty) {
+      return Center(
+        child: _loading ? CircularProgressIndicator() : Text("Sem Actividades!"),
+      );
+    } else {
+
+      return ListView.builder(
+        scrollDirection: Axis.vertical,
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        itemCount: _actividades.length,
+        itemBuilder: (context, index) => _buildAtividadeCard(context, index),
+      );
+    }
   }
 
 
@@ -317,6 +352,7 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
                 ),
                 TextButton(
                   onPressed: () {
+                    setState(() {});
                     Navigator.of(context).pop();
                   },
                   style: TextButton.styleFrom(
@@ -329,6 +365,74 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+
+  Widget _buildAtividadeCard(BuildContext context,int index) {
+    final actividade = _actividades[index];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFFEBEBEB),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            actividade.titulo,
+            style: TextStyle( fontSize:16,fontWeight: FontWeight.bold, color: Color(0xFF706E6F)),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children:  [
+              Icon(Icons.calendar_today, size: 16),
+              SizedBox(width: 4),
+              Text( DateFormat('dd/MM/yyyy').format(actividade.dataEntrega), style: TextStyle(color: Color(0xFFE82B2B), fontWeight: FontWeight.bold)),
+              SizedBox(width: 16),
+              Text('Prioridade: '),
+              Text(actividade.prioridade, style: TextStyle(color: Color(0xFFE82B2B), fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+
+              Text(
+                'Projecto:${actividade.idProjeto}',
+                style: TextStyle(
+                  color: Color(0xFF706E6F),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              Checkbox(
+                activeColor: Color(0xFFE82B2B),
+                value: actividade.status== 1 ? true : false,
+                checkColor: Colors.white,
+                onChanged: (value) async {
+                  if (value != null) {
+                    setState(() {
+                      _actividades[index].status = value  ? 1 : 0; // Atualiza o status na lista
+                      print('Estado Novo: ${_actividades[index].status}, id da actividade: ${_actividades[index].id}');
+                      // Atualizar na base de dados
+                      DBHelper().updateStatusAtividade(value  ? 1 : 0,_actividades[index].id,);
+                    });
+                    _actividades = await DBHelper().getAtividades();
+                    setState(() {});
+                  }
+                },
+              ),
+
+            ],
+          ),
+        ],
       ),
     );
   }

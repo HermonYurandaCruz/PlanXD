@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/projeto.dart';
@@ -41,7 +43,7 @@ class DBHelper {
             titulo TEXT,
             dataEntrega TEXT,
             prioridade TEXT,
-            status TEXT,
+            status INTEGER,
             description TEXT,
             idProjeto TEXT
           )
@@ -89,4 +91,45 @@ class DBHelper {
     var result = await database.query('actividades');
     return result.map((e) => Atividade.fromMap(e)).toList();
   }
+
+  Future<List<Atividade>> getAtividadesByIdProjeto(int idProjeto) async {
+    final database = await db;
+    DBHelper _helperProjecto = DBHelper();
+
+    // Faz a query filtrando pelo idProjeto
+    final result = await database.query(
+      'actividades',
+      where: 'idProjeto = ?',
+      whereArgs: [idProjeto],
+    );
+
+    // Converte os resultados para uma lista de Atividade
+    return result.map((e) => Atividade.fromMap(e)).toList();
+  }
+
+
+  Future<int> updateStatusAtividade(int status, int? id) async {
+    if (id == null) {
+      print('ID da actividade não pode ser nulo!');
+      throw Exception('ID da actividade não pode ser nulo!');
+    }
+
+    final database = await db;
+    print('Actualizando actividade ID: $id com status: $status'); // <= Adiciona isto para ver se chegou aqui
+
+    final result = await database.update(
+      'actividades',
+      {
+        'status': status,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    print('Resultado do update: $result'); // <= Adiciona isto também
+    return result;
+  }
+
+
+
 }

@@ -42,7 +42,7 @@ class _HomeScreen extends State<HomeScreen> {
         _loading = false;
       });
       _actividades.forEach((actividade) {
-        print('Actividade: ${actividade.titulo}, Data de fim: ${actividade.dataEntrega}');
+        print('Actividade: ${actividade.titulo}, Data de fim: ${actividade.dataEntrega}, estado: ${actividade.status}');
       });
     });
   }
@@ -99,11 +99,9 @@ class _HomeScreen extends State<HomeScreen> {
       children: [
         _buildChip('All', true),
         const SizedBox(width: 8),
-        _buildChip('Em progresso', false),
         const SizedBox(width: 8),
         _buildChip('Concluído', false),
         const SizedBox(width: 8),
-        _buildChip('Em pausa', false),
       ],
     );
   }
@@ -136,10 +134,6 @@ class _HomeScreen extends State<HomeScreen> {
       children: [
         Text(title, style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
 
-        IconButton(
-          onPressed: () => context.go('/new_project'),
-          icon: const Icon(Icons.add),color: Color(0xFF706E6F),
-        ),
       ],
     );
   }
@@ -240,7 +234,6 @@ class _HomeScreen extends State<HomeScreen> {
 
   Widget _buildAtividadeCard(BuildContext context,int index) {
     final actividade = _actividades[index];
-    bool? isSelected = false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -254,7 +247,7 @@ class _HomeScreen extends State<HomeScreen> {
         children: [
          Text(
             actividade.titulo,
-            style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF706E6F)),
+            style: TextStyle( fontSize:16,fontWeight: FontWeight.bold, color: Color(0xFF706E6F)),
           ),
           const SizedBox(height: 8),
           Row(
@@ -283,16 +276,22 @@ class _HomeScreen extends State<HomeScreen> {
 
               Checkbox(
                 activeColor: Color(0xFFE82B2B),
-                value: isSelected,
+                value: actividade.status== 1 ? true : false,
                 checkColor: Colors.white,
-                autofocus: true,
-                onChanged: (value) {
-                  setState(() {
-                    isSelected = true;
-                  });
+                onChanged: (value) async {
+                  if (value != null) {
+                    setState(() {
+                      _actividades[index].status = value  ? 1 : 0; // Atualiza o status na lista
+                      print('Estado Novo: ${_actividades[index].status}, id da actividade: ${_actividades[index].id}');
+                      // Atualizar na base de dados
+                       DBHelper().updateStatusAtividade(value  ? 1 : 0,_actividades[index].id,);
+                    });
+                    _actividades = await DBHelper().getAtividades();
+                    setState(() {});
+                  }
                 },
-
               ),
+
             ],
           ),
         ],
