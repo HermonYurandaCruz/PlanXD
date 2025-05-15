@@ -25,29 +25,33 @@ class DBHelper {
       path,
       version: 1,
       onCreate: (Database db, int version) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+
         await db.execute('''
-          CREATE TABLE projetos(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT,
-            dateEnd TEXT,
-            dateStart TEXT,
-            objective TEXT,
-            typeProject TEXT,
-            descriptionProject TEXT,
-            numeroAtividades INTEGER
-          )
-        ''');
+        CREATE TABLE projetos(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nome TEXT,
+          dateEnd TEXT,
+          dateStart TEXT,
+          objective TEXT,
+          typeProject TEXT,
+          descriptionProject TEXT,
+          numeroAtividades INTEGER
+        )
+      ''');
+
         await db.execute('''
-          CREATE TABLE actividades(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titulo TEXT,
-            dataEntrega TEXT,
-            prioridade TEXT,
-            status INTEGER,
-            description TEXT,
-            idProjeto TEXT
-          )
-        ''');
+        CREATE TABLE actividades(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          titulo TEXT,
+          dataEntrega TEXT,
+          prioridade TEXT,
+          status INTEGER,
+          description TEXT,
+          idProjeto INTEGER,
+          FOREIGN KEY (idProjeto) REFERENCES projetos(id) ON DELETE CASCADE
+        )
+      ''');
       },
     );
   }
@@ -57,6 +61,26 @@ class DBHelper {
     var database = await db;
     return await database.insert('projetos', projeto.toMap());
   }
+
+  Future<int> deleteProject(int id) async {
+    final database = await db;
+    return await database.delete(
+      'projetos',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> updateProjeto(Projeto projeto) async {
+    final database = await db;
+    return await database.update(
+      'projetos',
+      projeto.toMap(),
+      where: 'id = ?',
+      whereArgs: [projeto.id],
+    );
+  }
+
 
   Future<List<Projeto>> getProjetos() async {
     var database = await db;
@@ -85,6 +109,16 @@ class DBHelper {
     var database = await db;
     return await database.insert('actividades', atividade.toMap());
   }
+
+  Future<int> deleteAtividade(int id) async {
+    final database = await db;
+    return await database.delete(
+      'actividades',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
 
   Future<List<Atividade>> getAtividades() async {
     var database = await db;
@@ -128,6 +162,31 @@ class DBHelper {
 
     print('Resultado do update: $result'); // <= Adiciona isto também
     return result;
+  }
+
+  Future<Atividade?> getActividadeById(int id) async {
+    var database = await db;
+    var result = await database.query(
+      'actividades',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (result.isNotEmpty) {
+      return Atividade.fromMap(result.first);
+    } else {
+      return null;
+    }
+  }
+
+  Future<int> updateAtividade(Atividade atividade) async {
+    final database = await db;
+    return await database.update(
+      'actividades',
+      atividade.toMap(),
+      where: 'id = ?',
+      whereArgs: [atividade.id],
+    );
   }
 
 

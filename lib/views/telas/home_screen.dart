@@ -22,6 +22,8 @@ class _HomeScreen extends State<HomeScreen> {
 
   DBHelper _helperProjecto = DBHelper();
   bool _loading = true;
+  String _filtroAtual = 'All';
+
 
   @override
   void initState() {
@@ -48,7 +50,15 @@ class _HomeScreen extends State<HomeScreen> {
   }
 
 
-
+  List<Atividade> getActividadesFiltradas() {
+    if (_filtroAtual == 'Concluídas') {
+      return _actividades.where((a) => a.status == 1).toList();
+    } else if (_filtroAtual == 'Activas') {
+      return _actividades.where((a) => a.status == 0).toList();
+    } else {
+      return _actividades;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,14 +70,14 @@ class _HomeScreen extends State<HomeScreen> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 24),
+            padding: const EdgeInsets.only(right: 0),
             child: IconButton(
               icon: SvgPicture.asset(
-                'assets/icons/search.svg',
-                width: 24,
-                height: 24,
+                'assets/icons/setting.svg',
+                width: 32,
+                height: 32,
               ),
-              onPressed: () {},
+              onPressed:  () => context.go('/chatboot_screen'),
             ),
           ),
         ],
@@ -84,7 +94,7 @@ class _HomeScreen extends State<HomeScreen> {
             const SizedBox(height: 8),
             _buildProjetosList(),
             const SizedBox(height: 16),
-            _buildSectionTitle(context,'Actividades'),
+            _buildSectionTitleActividades(context,'Actividades'),
             const SizedBox(height: 8),
             _buildActividadesList(),
           ],
@@ -97,24 +107,28 @@ class _HomeScreen extends State<HomeScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        _buildChip('All', true),
+        _buildChip('All'),
         const SizedBox(width: 8),
+        _buildChip('Concluídas'),
         const SizedBox(width: 8),
-        _buildChip('Concluído', false),
-        const SizedBox(width: 8),
+        _buildChip('Activas'),
       ],
     );
   }
 
-  Widget _buildChip(String label, bool selected) {
+  Widget _buildChip(String label) {
+    bool selected = _filtroAtual == label;
+
     return ChoiceChip(
       label: Text(label),
       selected: selected,
       onSelected: (bool value) {
-
+        setState(() {
+          _filtroAtual = label;
+        });
       },
-      disabledColor:Color(0xFFF4F4F4),
-      selectedColor:Color(0xFFE82B2B),
+      disabledColor: Color(0xFFF4F4F4),
+      selectedColor: Color(0xFFE82B2B),
       showCheckmark: false,
       labelStyle: TextStyle(
         color: selected ? Colors.white : Colors.black,
@@ -128,7 +142,21 @@ class _HomeScreen extends State<HomeScreen> {
     );
   }
 
+
   Widget _buildSectionTitle(BuildContext context,String title) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
+        IconButton(
+          onPressed: () => context.go('/new_project'),
+          icon: const Icon(Icons.add),color: Color(0xFF706E6F),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionTitleActividades(BuildContext context,String title) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -166,10 +194,39 @@ class _HomeScreen extends State<HomeScreen> {
           scrollDirection: Axis.vertical,
           shrinkWrap: true,
           physics: NeverScrollableScrollPhysics(),
-          itemCount: _actividades.length,
+          itemCount: getActividadesFiltradas().length,
           itemBuilder: (context, index) => _buildAtividadeCard(context, index),
       );
     }
+  }
+
+  void _confirmarRemocao(BuildContext context, int idAtividade) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Confirmar remoção'),
+        content: Text('Deseja realmente apagar esta atividade?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              if (idAtividade != null) {
+                await DBHelper().deleteAtividade(idAtividade);
+              }
+              Navigator.pop(context);
+              _actividades = await DBHelper().getAtividades();
+              setState(() {});
+            },
+            child: Text('Apagar', style: const TextStyle(color: Color(
+                0xFFFFFFFF) ,fontWeight: FontWeight.normal)),
+          ),
+        ],
+      ),
+    );
   }
 
 
@@ -230,72 +287,101 @@ class _HomeScreen extends State<HomeScreen> {
     );
   }
 
+  Widget _buildAtividadeCard(BuildContext context, int index) {
+    final actividade = getActividadesFiltradas()[index];
 
-
-  Widget _buildAtividadeCard(BuildContext context,int index) {
-    final actividade = _actividades[index];
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Color(0xFFEBEBEB),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-         Text(
-            actividade.titulo,
-            style: TextStyle( fontSize:16,fontWeight: FontWeight.bold, color: Color(0xFF706E6F)),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children:  [
-              Icon(Icons.calendar_today, size: 16),
-              SizedBox(width: 4),
-              Text( DateFormat('dd/MM/yyyy').format(actividade.dataEntrega), style: TextStyle(color: Color(0xFFE82B2B), fontWeight: FontWeight.bold)),
-              SizedBox(width: 16),
-              Text('Prioridade: '),
-              Text(actividade.prioridade, style: TextStyle(color: Color(0xFFE82B2B), fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-
-              Text(
-                'Projecto:${actividade.idProjeto}',
-                style: TextStyle(
-                  color: Color(0xFF706E6F),
-                  fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: () {
+        context.go('/detail_atividade/${actividade.id}');
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Color(0xFFEBEBEB),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    actividade.titulo,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF706E6F),
+                    ),
+                  ),
                 ),
-              ),
+              ],
+            ),
 
-              Checkbox(
-                activeColor: Color(0xFFE82B2B),
-                value: actividade.status== 1 ? true : false,
-                checkColor: Colors.white,
-                onChanged: (value) async {
-                  if (value != null) {
-                    setState(() {
-                      _actividades[index].status = value  ? 1 : 0; // Atualiza o status na lista
-                      print('Estado Novo: ${_actividades[index].status}, id da actividade: ${_actividades[index].id}');
-                      // Atualizar na base de dados
-                       DBHelper().updateStatusAtividade(value  ? 1 : 0,_actividades[index].id,);
-                    });
-                    _actividades = await DBHelper().getAtividades();
-                    setState(() {});
-                  }
-                },
-              ),
-
-            ],
-          ),
-        ],
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16),
+                SizedBox(width: 4),
+                Text(
+                  DateFormat('dd/MM/yyyy').format(actividade.dataEntrega),
+                  style: TextStyle(
+                    color: Color(0xFFE82B2B),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Text('Prioridade: '),
+                Text(
+                  actividade.prioridade,
+                  style: TextStyle(
+                    color: Color(0xFFE82B2B),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Projecto: ${actividade.idProjeto}',
+                  style: TextStyle(
+                    color: Color(0xFF706E6F),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Checkbox(
+                  activeColor: Color(0xFFE82B2B),
+                  value: actividade.status == 1 ? true : false,
+                  checkColor: Colors.white,
+                  onChanged: (value) async {
+                    if (value != null) {
+                      setState(() {
+                        _actividades[index].status = value ? 1 : 0;
+                        print('Estado Novo: ${_actividades[index].status}, id da actividade: ${_actividades[index].id}');
+                        DBHelper().updateStatusAtividade(
+                          value ? 1 : 0,
+                          _actividades[index].id,
+                        );
+                      });
+                      _actividades = await DBHelper().getAtividades();
+                      setState(() {});
+                    }
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
+
+
 }

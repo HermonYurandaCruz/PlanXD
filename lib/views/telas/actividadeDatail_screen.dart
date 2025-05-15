@@ -9,23 +9,24 @@ import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import '../../DB/db_helper.dart';
 import '../../models/atividade.dart';
 import '../../models/projeto.dart';
+import '../../services/gemini_service.dart';
 
-class DetalhesProjecto extends StatefulWidget{
+class DetalhesActidade extends StatefulWidget{
 final int id;
 
-const DetalhesProjecto({Key? key, required this.id}) : super(key: key);
+const DetalhesActidade({Key? key, required this.id}) : super(key: key);
 
   @override
-  _DetalhesProjectoState createState()=> _DetalhesProjectoState();
+  _DetalhesActividadesState createState()=> _DetalhesActividadesState();
 
   }
-class _DetalhesProjectoState extends State<DetalhesProjecto> {
-  final _formKey = GlobalKey<FormState>();
-  List<Atividade> _actividades = [];
-  bool _loading = true;
-  DBHelper _helperProjecto = DBHelper();
+class _DetalhesActividadesState extends State<DetalhesActidade> {
 
-  Projeto? _projeto;
+  final GeminiService _geminiService = GeminiService();
+
+  Atividade? _actividade;
+  String _resposta = '';
+
   final nomeActividade= TextEditingController();
   final descricaoController = TextEditingController();
   String? statusSelecionado;
@@ -33,6 +34,12 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
   DateTime? dataConclusao;
   List<String> prioridadeList = ['Alta', 'Media', 'Baixa'];
 
+  void _enviarPrompt(String atividade, String descricao ) async {
+    final resposta = await _geminiService.gerarResposta(atividade,descricao);
+    setState(() {
+      _resposta = resposta;
+    });
+  }
 
   Future<void> _selecionarData(BuildContext context) async {
     final dataSelecionada = await showDatePicker(
@@ -48,6 +55,43 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
     }
   }
 
+  Widget _datePickerField(BuildContext context, String label, DateTime? selectedDate) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => _selecionarData(context),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: label,
+            filled: true,
+            fillColor: Colors.grey[200],
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
+          child: Text(
+            selectedDate != null
+                ? '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'
+                : 'Selecionar data',
+            style: TextStyle(color: selectedDate != null ? Colors.black : Colors.grey),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _carregarProjeto() async {
+    final actividade = await DBHelper().getActividadeById(widget.id);
+    if (actividade != null) {
+      setState(() {
+        nomeActividade.text = actividade.titulo;
+        descricaoController.text = actividade.description;
+        statusSelecionado = actividade.prioridade;
+        dataConclusao = actividade.dataEntrega;
+        // statusSelecionado = projeto.status; // só se você tiver esse campo no modelo
+      });
+    }
+  }
+
+
   Future<void> _salvarFormulario() async {
     print('Dados activdade:');
     print(nomeActividade.text);
@@ -55,7 +99,7 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
     print(statusSelecionado);
     print(widget.id);
 
-    if (dataConclusao != null && nomeActividade.text.isNotEmpty && statusSelecionado != null && descricaoController != null && widget.id != null) {
+    if (dataConclusao != null && nomeActividade.text.isNotEmpty && statusSelecionado != null && widget.id != null) {
       print('endrou no metodo cadastreAR ACTIVIDaDE bD:');
 
       final atividade = Atividade(
@@ -68,7 +112,7 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
       );
       print('ADICIONOU TUDO AO OBJECTO: $atividade');
 
-      await DBHelper().insertAtividade(atividade);
+      await DBHelper().updateAtividade(atividade);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Actividade salva com sucesso!')),
@@ -85,35 +129,13 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
   }
 
 
-  @override
-  void initState() {
-    super.initState();
-    _buscarProjeto();
 
-    _helperProjecto.getAtividadesByIdProjeto(widget.id).then((list) {
-      setState(() {
-        _actividades = list;
-        _loading = false;
-      });
-      _actividades.forEach((actividade) {
-        print('Actividade: ${actividade.titulo}, Data de fim: ${actividade.dataEntrega}, estado: ${actividade.status}');
-      });
-    });
-  }
-
-
-  Future<void> _buscarProjeto() async {
-    final projeto = await DBHelper().getProjetoById(widget.id);
-    setState(() {
-      _projeto = projeto;
-    });
-  }
   void _confirmarRemocao(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Confirmar remoção'),
-        content: Text('Deseja realmente apagar este projecto?'),
+        content: Text('Deseja realmente apagar esta atividade?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -123,11 +145,11 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               if (widget.id != null) {
-                await DBHelper().deleteProject(widget.id);
+                await DBHelper().deleteAtividade(widget.id);
                 context.go('/');
               }
             },
-            child:Text('Apagar', style: const TextStyle(color: Color(
+            child: Text('Apagar', style: const TextStyle(color: Color(
                 0xFFFFFFFF) ,fontWeight: FontWeight.normal)),
           ),
         ],
@@ -135,18 +157,29 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
     );
   }
 
+
+
+
+  @override
+  void initState() {
+    super.initState();
+    _buscarActividade();
+    _carregarProjeto();
+  }
+
+  Future<void> _buscarActividade() async {
+    final actividades = await DBHelper().getActividadeById(widget.id);
+    setState(() {
+      _actividade = actividades;
+    });
+  }
+
+
   @override
   Widget build(BuildContext context){
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Detalhes do Projecto',
-          style: TextStyle(
-            fontSize: 18,
-            color: Color(0xFF706E6F),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('Detalhes da Actividade',style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -156,15 +189,14 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
         backgroundColor: Colors.white,
         foregroundColor: Color(0xFF706E6F),
         elevation: 0,
-
-        // 👇 Aqui vai o menu à direita
         actions: [
           PopupMenuButton<String>(
             icon: Icon(Icons.more_horiz),
+
             onSelected: (value) {
               if (value == 'editar') {
                 if(widget.id != null){
-                  context.go('/update_project/${widget.id}');
+                _mostrarBottomSheet(context);
                 }
               } else if (value == 'apagar') {
                 _confirmarRemocao(context);
@@ -194,8 +226,8 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
             ],
           ),
         ],
-      ),
 
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(
@@ -203,9 +235,9 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
              Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Projecto',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
+                const Text('Actividade:',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
                 const SizedBox(height: 4),
-                Text(_projeto?.nome ?? 'Sem título',style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
+                Text(_actividade?.titulo ?? 'Sem título',style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -213,12 +245,12 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Data de Inicio',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
+                        const Text('Data de conclusão',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
                         Row(
                           children: [
                             Icon(Icons.calendar_today, color: Color(0xFF706E6F), size: 16),
                             SizedBox(width: 4),
-                            Text( '${DateFormat('dd/MM/yyyy').format(_projeto!.dateStart)}',
+                            Text( '${DateFormat('dd/MM/yyyy').format(_actividade!.dataEntrega)}',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF706E6F),
@@ -233,28 +265,8 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Data de Conclusão',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
-                        Row(
-                          children: [
-                            Icon(Icons.calendar_today, color: Color(0xFF706E6F), size: 16),
-                            SizedBox(width: 4),
-                            Text( '${DateFormat('dd/MM/yyyy').format(_projeto!.dateEnd)}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF706E6F),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                      ],
-                    ),
-
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Actividades:',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
-                        Text('${_projeto!.numeroAtividades} Actividades',style: const TextStyle(fontSize: 14, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
+                        const Text('Prioridade:',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
+                        Text('${_actividade!.prioridade}',style: const TextStyle(fontSize: 14, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
                       ],
                     )
                   ],
@@ -262,21 +274,40 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
                 ),
                 const SizedBox(height: 12),
                 const Text('Descrição do projecto:',style: const TextStyle(fontSize: 16, color: Color(0xFF888888) ,fontWeight: FontWeight.bold)),
-                Text('${_projeto!.descriptionProject}',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
-
+                Text('${_actividade!.description}',style: const TextStyle(fontSize: 14, color: Color(0xFF888888) ,fontWeight: FontWeight.normal)),
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Actividades', style: const TextStyle(fontSize: 18, color: Color(0xFF706E6F) ,fontWeight: FontWeight.bold)),
 
-                    IconButton(
-                      onPressed:() => _mostrarBottomSheet(context),
-                      icon: const Icon(Icons.add),color: Color(0xFF706E6F),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      if (_actividade != null) {
+                        _enviarPrompt(_actividade!.titulo, _actividade!.description);
+                      }
+                    },
+                    icon: Image.asset(
+                      'assets/icons/ai-technology.png', // Substitua pelo caminho do seu PNG
+                      width: 24,
+                      height: 24,
                     ),
-                  ],
+                    label: Text("Gerar plano com IA"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0x2F98D1FA), // azul muito claro
+                      foregroundColor: Color(0xFF706E6F), // cor do texto e ícone
+                      elevation: 0,
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                  ),
                 ),
-                _buildActividadesList()
+
+                 SizedBox(height: 12),
+                Text("", style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 10),
+                Text(_resposta),
+
 
               ],
             ),
@@ -286,50 +317,6 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
       ),
     );
   }
-
-
-  Widget _buildActividadesList() {
-    if (_actividades.isEmpty) {
-      return Center(
-        child: _loading ? CircularProgressIndicator() : Text("Sem Actividades!"),
-      );
-    } else {
-
-      return ListView.builder(
-        scrollDirection: Axis.vertical,
-        shrinkWrap: true,
-        physics: NeverScrollableScrollPhysics(),
-        itemCount: _actividades.length,
-        itemBuilder: (context, index) => _buildAtividadeCard(context, index),
-      );
-    }
-  }
-
-
-  Widget _datePickerField(BuildContext context, String label, DateTime? selectedDate) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () => _selecionarData(context),
-        child: InputDecorator(
-          decoration: InputDecoration(
-            labelText: label,
-            filled: true,
-            fillColor: Colors.grey[200],
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
-          child: Text(
-            selectedDate != null
-                ? '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'
-                : 'Selecionar data',
-            style: TextStyle(color: selectedDate != null ? Colors.black : Colors.grey),
-          ),
-        ),
-      ),
-    );
-  }
-
-
   void _mostrarBottomSheet(BuildContext context) {
     showCupertinoModalBottomSheet(
       context: context,
@@ -381,20 +368,20 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
 
                 SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Prioridade',
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
+                    decoration: InputDecoration(
+                      labelText: 'Prioridade',
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
-                  ),
-                  items: prioridadeList.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+                    items: prioridadeList.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
                     validator: (value) => value == null ? 'Selecione uma opção' : null,
                     onChanged:  (value) {
-                    setState(() => statusSelecionado = value);
-                  }),
+                      setState(() => statusSelecionado = value);
+                    }),
 
                 SizedBox(height: 12),
                 TextField(
@@ -442,100 +429,6 @@ class _DetalhesProjectoState extends State<DetalhesProjecto> {
   }
 
 
-  Widget _buildAtividadeCard(BuildContext context, int index) {
-    final actividade = _actividades[index];
 
-    return GestureDetector(
-      onTap: () {
-        context.go('/detail_atividade/${actividade.id}');
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Color(0xFFEBEBEB),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    actividade.titulo,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF706E6F),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.calendar_today, size: 16),
-                SizedBox(width: 4),
-                Text(
-                  DateFormat('dd/MM/yyyy').format(actividade.dataEntrega),
-                  style: TextStyle(
-                    color: Color(0xFFE82B2B),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(width: 16),
-                Text('Prioridade: '),
-                Text(
-                  actividade.prioridade,
-                  style: TextStyle(
-                    color: Color(0xFFE82B2B),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'Projecto: ${actividade.idProjeto}',
-                  style: TextStyle(
-                    color: Color(0xFF706E6F),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Checkbox(
-                  activeColor: Color(0xFFE82B2B),
-                  value: actividade.status == 1 ? true : false,
-                  checkColor: Colors.white,
-                  onChanged: (value) async {
-                    if (value != null) {
-                      setState(() {
-                        _actividades[index].status = value ? 1 : 0;
-                        print('Estado Novo: ${_actividades[index].status}, id da actividade: ${_actividades[index].id}');
-                        DBHelper().updateStatusAtividade(
-                          value ? 1 : 0,
-                          _actividades[index].id,
-                        );
-                      });
-                      _actividades = await DBHelper().getAtividades();
-                      setState(() {});
-                    }
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
 }
