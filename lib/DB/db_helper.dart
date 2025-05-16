@@ -180,12 +180,14 @@ class DBHelper {
   }
 
   Future<int> updateAtividade(Atividade atividade) async {
+    print('update de actividade'); // <= Adiciona isto também
     final database = await db;
     return await database.update(
       'actividades',
       atividade.toMap(),
       where: 'id = ?',
       whereArgs: [atividade.id],
+
     );
   }
 

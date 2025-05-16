@@ -29,6 +29,8 @@ class _DetalhesActividadesState extends State<DetalhesActidade> {
 
   final nomeActividade= TextEditingController();
   final descricaoController = TextEditingController();
+  var idProjeto= TextEditingController();
+
   String? statusSelecionado;
 
   DateTime? dataConclusao;
@@ -86,6 +88,8 @@ class _DetalhesActividadesState extends State<DetalhesActidade> {
         descricaoController.text = actividade.description;
         statusSelecionado = actividade.prioridade;
         dataConclusao = actividade.dataEntrega;
+        idProjeto= actividade.idProjeto as TextEditingController;
+
         // statusSelecionado = projeto.status; // só se você tiver esse campo no modelo
       });
     }
@@ -103,6 +107,7 @@ class _DetalhesActividadesState extends State<DetalhesActidade> {
       print('endrou no metodo cadastreAR ACTIVIDaDE bD:');
 
       final atividade = Atividade(
+        id: widget.id,
         titulo: nomeActividade.text,
         dataEntrega: dataConclusao!,
         prioridade: statusSelecionado!,

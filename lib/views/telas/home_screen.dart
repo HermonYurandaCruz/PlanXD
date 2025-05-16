@@ -200,34 +200,6 @@ class _HomeScreen extends State<HomeScreen> {
     }
   }
 
-  void _confirmarRemocao(BuildContext context, int idAtividade) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Confirmar remoção'),
-        content: Text('Deseja realmente apagar esta atividade?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              if (idAtividade != null) {
-                await DBHelper().deleteAtividade(idAtividade);
-              }
-              Navigator.pop(context);
-              _actividades = await DBHelper().getAtividades();
-              setState(() {});
-            },
-            child: Text('Apagar', style: const TextStyle(color: Color(
-                0xFFFFFFFF) ,fontWeight: FontWeight.normal)),
-          ),
-        ],
-      ),
-    );
-  }
 
 
   Widget _buildProjetoCard(BuildContext context, int index) {
@@ -309,7 +281,8 @@ class _HomeScreen extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                  child: Text(
+                  child:
+                  Text(
                     actividade.titulo,
                     style: TextStyle(
                       fontSize: 16,
@@ -317,6 +290,26 @@ class _HomeScreen extends State<HomeScreen> {
                       color: Color(0xFF706E6F),
                     ),
                   ),
+                ),
+
+                Checkbox(
+                  activeColor: Color(0xFFE82B2B),
+                  value: actividade.status == 1 ? true : false,
+                  checkColor: Colors.white,
+                  onChanged: (value) async {
+                    if (value != null) {
+                      setState(() {
+                        _actividades[index].status = value ? 1 : 0;
+                        print('Estado Novo: ${_actividades[index].status}, id da actividade: ${_actividades[index].id}');
+                        DBHelper().updateStatusAtividade(
+                          value ? 1 : 0,
+                          _actividades[index].id,
+                        );
+                      });
+                      _actividades = await DBHelper().getAtividades();
+                      setState(() {});
+                    }
+                  },
                 ),
               ],
             ),
@@ -344,39 +337,7 @@ class _HomeScreen extends State<HomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'Projecto: ${actividade.idProjeto}',
-                  style: TextStyle(
-                    color: Color(0xFF706E6F),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Checkbox(
-                  activeColor: Color(0xFFE82B2B),
-                  value: actividade.status == 1 ? true : false,
-                  checkColor: Colors.white,
-                  onChanged: (value) async {
-                    if (value != null) {
-                      setState(() {
-                        _actividades[index].status = value ? 1 : 0;
-                        print('Estado Novo: ${_actividades[index].status}, id da actividade: ${_actividades[index].id}');
-                        DBHelper().updateStatusAtividade(
-                          value ? 1 : 0,
-                          _actividades[index].id,
-                        );
-                      });
-                      _actividades = await DBHelper().getAtividades();
-                      setState(() {});
-                    }
-                  },
-                ),
-              ],
-            ),
+
           ],
         ),
       ),
